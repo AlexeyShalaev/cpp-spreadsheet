@@ -3,34 +3,60 @@
 #include "common.h"
 #include "formula.h"
 
+#include <memory>
+#include <string>
+#include <variant>
 #include <functional>
+#include <vector>
 #include <unordered_set>
 
 class Sheet;
 
 class Cell : public CellInterface {
+    class Impl;
+
+    class EmptyImpl;
+
+    class TextImpl;
+
+    class FormulaImpl;
+
+    struct PositionHasher {
+        size_t operator()(const Position &pos) const {
+            return std::hash<std::string>{}(pos.ToString());
+        }
+    };
+
+    std::unique_ptr<Impl> impl_;
+
+    const Position pos_;
+    Sheet &sheet_;
+    std::vector<Position> child_cells_;
+    std::unordered_set<Position, PositionHasher> parent_cells_;
+
 public:
-    Cell(Sheet& sheet);
-    ~Cell();
+    bool is_calculation_ = false;
+
+    Cell(Sheet &sheet, Position pos);
+
+    ~Cell() override;
 
     void Set(std::string text);
+
     void Clear();
 
     Value GetValue() const override;
+
     std::string GetText() const override;
+
     std::vector<Position> GetReferencedCells() const override;
 
     bool IsReferenced() const;
 
-private:
-    class Impl;
-    class EmptyImpl;
-    class TextImpl;
-    class FormulaImpl;
+    std::vector<Position> GetParentCells() const;
 
-    std::unique_ptr<Impl> impl_;
+    void DeletePerents(const Position &cell);
 
-    // Добавьте поля и методы для связи с таблицей, проверки циклических 
-    // зависимостей, графа зависимостей и т. д.
+    void AddPerents(const Position &cell);
 
 };
